@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Essay Typer</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f0f0f;
+    --surface: #161616;
+    --surface2: #1e1e1e;
+    --border: #2a2a2a;
+    --accent: #c084fc;
+    --accent-dim: #9333ea;
+    --text: #e8e4dc;
+    --text-dim: #6b6b6b;
+    --text-mid: #a0a0a0;
+    --red: #f06060;
+    --font: 'IBM Plex Mono', monospace;
+  }
+
+  body {
+    width: 340px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 12px;
+    padding: 0;
+  }
+
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .logo {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    color: var(--accent);
+    text-transform: uppercase;
+  }
+
+  #statusTag {
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    padding: 2px 7px;
+    border-radius: 1px;
+    text-transform: uppercase;
+  }
+  .tag-ready   { background: #241238; color: var(--accent); }
+  .tag-waiting { background: #302044; color: #d8b4fe; }
+  .tag-typing  { background: #351052; color: #e9d5ff; }
+  .tag-paused  { background: #302044; color: #d8b4fe; }
+  .tag-done    { background: #351052; color: #e9d5ff; }
+  .tag-error   { background: #2a0a0a; color: var(--red); }
+
+  .body { padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; }
+
+  .label {
+    font-size: 9px;
+    letter-spacing: 0.16em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-bottom: 5px;
+  }
+
+  textarea {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 11px;
+    line-height: 1.6;
+    padding: 9px 11px;
+    border-radius: 2px;
+    resize: vertical;
+    min-height: 130px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  textarea:focus { border-color: var(--accent-dim); }
+  textarea::placeholder { color: var(--text-dim); }
+
+  .row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .ctrl-label { font-size: 10px; color: var(--text-mid); flex-shrink: 0; }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    flex: 1;
+    height: 2px;
+    background: var(--border);
+    outline: none;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 11px; height: 11px;
+    background: var(--accent);
+    border-radius: 50%;
+    cursor: pointer;
+  }
+
+  .range-val { font-size: 10px; color: var(--accent); min-width: 34px; text-align: right; }
+
+  .mode-toggle {
+    display: flex;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .mode-btn {
+    flex: 1;
+    padding: 6px 4px;
+    font-size: 9px;
+    letter-spacing: 0.09em;
+    background: transparent;
+    color: var(--text-dim);
+    border: none;
+    text-transform: uppercase;
+    cursor: pointer;
+    font-family: var(--font);
+  }
+  .mode-btn.active { background: var(--surface2); color: var(--accent); }
+
+  .progress-wrap { height: 2px; background: var(--border); }
+  .progress-bar  { height: 100%; background: var(--accent); width: 0%; transition: width 0.1s; }
+
+  .progress-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: 9px;
+    color: var(--text-dim);
+    margin-top: 4px;
+  }
+  .progress-info .pct { color: var(--accent); }
+
+  .btn-row { display: flex; gap: 7px; }
+
+  button.btn {
+    font-family: var(--font);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border: none;
+    border-radius: 1px;
+    padding: 9px 12px;
+    transition: all 0.15s;
+  }
+  .btn-primary { background: var(--accent); color: #1a1022; flex: 1; font-weight: 500; }
+  .btn-primary:hover:not(:disabled) { background: #d8b4fe; }
+  .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+
+  .btn-secondary { background: transparent; color: var(--text-mid); border: 1px solid var(--border); }
+  .btn-secondary:hover:not(:disabled) { border-color: var(--text-mid); color: var(--text); }
+  .btn-secondary:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  .btn-stop { background: transparent; color: var(--red); border: 1px solid #3a2020; }
+  .btn-stop:hover:not(:disabled) { border-color: var(--red); background: #1a0f0f; }
+  .btn-stop:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  .notice {
+    font-size: 10px;
+    color: var(--text-dim);
+    line-height: 1.5;
+    padding: 9px 11px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+  }
+  .notice b { color: var(--accent); font-weight: 500; }
+
+  .stats {
+    display: flex;
+    gap: 0;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .stat {
+    flex: 1;
+    text-align: center;
+    padding: 7px 6px;
+    border-right: 1px solid var(--border);
+    background: var(--surface2);
+  }
+  .stat:last-child { border-right: none; }
+  .stat-val { font-size: 13px; color: var(--text); display: block; }
+  .stat-lbl { font-size: 9px; color: var(--text-dim); letter-spacing: 0.1em; display: block; margin-top: 2px; }
+
+  #msgBox {
+    font-size: 10px;
+    color: var(--red);
+    min-height: 14px;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Essay Typer</div>
+  <div id="statusTag" class="tag-ready">Ready</div>
+</header>
+
+<div class="body">
+
+  <div>
+    <div class="label">Your Essay</div>
+    <textarea id="essayInput" placeholder="Paste your essay here…&#10;Then open a Google Doc, click where you want to start, and hit Start."></textarea>
+  </div>
+
+  <div class="notice">
+    <b>How to use:</b> Paste essay → open your Google Doc → click where you want to type → press <b>Start</b>. Speed slider: move right for faster typing. Variation is used in Human mode; at 0%, timing stays steady.
+  </div>
+
+  <div>
+    <div class="label">Speed &amp; Style <span style="letter-spacing:0;text-transform:none">(right = faster)</span></div>
+    <div class="row" style="margin-bottom:8px">
+      <span class="ctrl-label">Speed</span>
+      <input type="range" id="speedSlider" min="1" max="100" value="85" aria-label="Typing speed; higher is faster">
+      <span class="range-val" id="speedVal">85%</span>
+    </div>
+    <div class="row">
+      <span class="ctrl-label">Variation</span>
+      <input type="range" id="variSlider" min="0" max="100" value="0">
+      <span class="range-val" id="variVal">0%</span>
+    </div>
+  </div>
+
+  <div>
+    <div class="label">Typing Mode</div>
+    <div class="mode-toggle">
+      <button class="mode-btn" id="modeHuman">Human</button>
+      <button class="mode-btn active" id="modeRobot">Robot</button>
+      <button class="mode-btn" id="modeBurst">Burst</button>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><span class="stat-val" id="statChars">0</span><span class="stat-lbl">chars</span></div>
+    <div class="stat"><span class="stat-val" id="statWords">0</span><span class="stat-lbl">words</span></div>
+    <div class="stat"><span class="stat-val" id="statTime">0:00</span><span class="stat-lbl">elapsed</span></div>
+  </div>
+
+  <div>
+    <div class="progress-wrap">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+    <div class="progress-info">
+      <span id="progressLabel">0 / 0 chars</span>
+      <span class="pct" id="progressPct">0%</span>
+    </div>
+  </div>
+
+  <div id="msgBox"></div>
+
+  <div class="btn-row">
+    <button class="btn btn-primary" id="btnStart">▶ Start</button>
+    <button class="btn btn-secondary" id="btnPause" disabled>⏸</button>
+    <button class="btn btn-stop" id="btnStop" disabled>■</button>
+  </div>
+
+</div>
+
+<script src="popup.js"></script>
+</body>
+</html>
